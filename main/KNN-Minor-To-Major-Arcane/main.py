@@ -35,17 +35,17 @@ def load_dataset(path):
        df = pd.json_normalize([{nome_col: k, **v} for k, v in data.items()])
     else:
        df = pd.json_normalize(data)
-    print("Colunas: ",list(df.columns))
+    print("Colunas: ")
+    print(list(df.columns))
+    print("Primeiras linhas: ", len(df))
     print(df.head())
     return df
 
-def build(df:pd.DataFrame) -> pd.DataFrame:
-    df["label"] = df[nome_col].apply(
-        lambda n: "Major" if n in arcanos_maiores else "Minor"
-    )
+def build(df: pd.DataFrame) -> pd.DataFrame:
+    df["label"] = df["arcana"]
+    print('Classes: ')
+    print(df["label"].unique())
     return df
-
-# print(build(load_dataset(dataset)))
 
 def features(df: pd.DataFrame):
   categorias_ex = [c for c in categorias if c in df.columns]
@@ -62,8 +62,6 @@ def features(df: pd.DataFrame):
   y = df["label"]
   return X, y, categorias_ex
 
-## print(features(build(load_dataset(dataset))))
-
 def preprocessamento(categorias):
    column_transformer = ColumnTransformer(
       transformers = [
@@ -77,9 +75,12 @@ def k_fold(X,y,categorias):
    preprocessador = preprocessamento(categorias)
    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
    modelos={
-      "KNN=3": KNeighborsClassifier(n_neighbors=3),
-      "KNN=5": KNeighborsClassifier(n_neighbors=5),
-      "KNN=7": KNeighborsClassifier(n_neighbors=7),
+      'KNN=3': KNeighborsClassifier(n_neighbors=3),
+      'KNN=5': KNeighborsClassifier(n_neighbors=5),
+      'KNN=7': KNeighborsClassifier(n_neighbors=7),
+      'KNN=8': KNeighborsClassifier(n_neighbors=8),
+      'KNN=9': KNeighborsClassifier(n_neighbors=9),
+      'KNN=10': KNeighborsClassifier(n_neighbors=10),
    }
    print('Resultados da validação cruzada:')
    results = []
@@ -101,16 +102,10 @@ def k_fold(X,y,categorias):
          'Acurácia Média': f'{mean_accuracy*100:.2f}%',
          'Desvio Padrão': f'{pd.Series(fold_accuracies).std()*100:.2f}%'
       })
-      print(f"{name}: {mean_accuracy:.4f}")
-   k3 = acuracias_media['KNN=3']
-   k5 = acuracias_media['KNN=5']
-   k7 = acuracias_media['KNN=7']
-   if k3 < k5 and k3 < k7:
-      print("K=3 teve menor acurácia em relação às outras iterações")
-   if k5 < k3 and k5 < k7:
-      print("K=5 teve menor acurácia em relação às outras iterações")
-   if k7 < k3 and k7 < k5:
-      print("K=7 teve menor acurácia em relação às outras iterações")
+   melhor = max(acuracias_media, key=acuracias_media.get)
+   print(pd.DataFrame(results).to_string(index=False))
+   print(f"Melhor: {melhor}" f" com acurácia média de {acuracias_media[melhor] * 100:.2f}%")
+
       
 def main():
    df = load_dataset(dataset)
