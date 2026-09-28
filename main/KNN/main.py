@@ -6,7 +6,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# utilização de naipes como classes, pois apenas 'minor' e 'major' não são suficientes para classificar as cartas
+# Classificação de cartas por naipe e arcano maior com KNN, comparando acuracias com validação cruzada K-Fold (5)
 
 dataset = 'dataset/cards.json'
 nome_col = 'name'
@@ -83,9 +83,6 @@ def k_fold(X,y,categorias,numericas):
       'KNN=3': KNeighborsClassifier(n_neighbors=3),
       'KNN=5': KNeighborsClassifier(n_neighbors=5),
       'KNN=7': KNeighborsClassifier(n_neighbors=7),
-      'KNN=8': KNeighborsClassifier(n_neighbors=8),
-      'KNN=9': KNeighborsClassifier(n_neighbors=9),
-      'KNN=10': KNeighborsClassifier(n_neighbors=10),
    }
    print('Resultados da validação cruzada:')
    results = []
@@ -115,6 +112,19 @@ def k_fold(X,y,categorias,numericas):
    print(pd.DataFrame(results).to_string(index=False))
    print()
    print(f"Melhor: {melhor}" f" com acurácia média de {acuracias_media[melhor] * 100:.2f}%")
+   return results
+
+def executar_knn():
+    df = load_dataset(dataset)
+    df = build(df)
+    X, y, categorias_ex, numericas_ex = features(df)
+    resultados = k_fold(
+        X,
+        y,
+        categorias_ex,
+        numericas_ex
+    )
+    return resultados
 
       
 def main():

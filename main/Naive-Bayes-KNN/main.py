@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier
@@ -8,19 +7,15 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# Classificação de cartas por naipe e arcano maior comparando KNN(K5) e análise com M-Naive Bayes
 
-dataset = 'dataset/cards.json'
-
+dataset = '../dataset/cards.json'
 categorias = [
     'planet',
-    'zodiac',
-    'element',
     'yes_no',
     'yes_no_reversed'
 ]
-
 numericas = ['number_numerology']
-
 texto_col = [
     'keywords_upright',
     'keywords_reversed',
@@ -58,7 +53,6 @@ def build(df):
         return row['suit']
 
     df['label'] = df.apply(definir_classe, axis=1)
-
     print('\nClasses:')
     print(df['label'].value_counts())
 
@@ -137,17 +131,13 @@ def k_fold(X, y, categorias, numericas):
         for train_index, test_index in skf.split(X, y):
             X_train = X.iloc[train_index]
             X_test = X.iloc[test_index]
-
             y_train = y.iloc[train_index]
             y_test = y.iloc[test_index]
 
             prep = preprocessamento(categorias, numericas)
-
             X_train = prep.fit_transform(X_train)
             X_test = prep.transform(X_test)
-
             modelo.fit(X_train, y_train)
-
             acuracia = modelo.score(X_test, y_test)
             acuracias.append(acuracia)
 
@@ -177,17 +167,15 @@ def k_fold(X, y, categorias, numericas):
     media_nb = medias['Naive Bayes']
 
     print()
-    print(f'Melhor KNN: {melhor_knn} - {media_knn * 100:.2f}%')
-    print(f'Naive Bayes: {media_nb * 100:.2f}%')
+    print(f'Melhor KNN: ({melhor_knn}) - {media_knn * 100:.2f}%')
+    print(f'Naive Bayes: {media_nb * 100:.2f}%\n')
 
     print('Comparação final:')
-
     if media_knn > media_nb:
         diferenca = (media_knn - media_nb) * 100
 
         print(f'{melhor_knn}: {media_knn * 100:.2f}%')
         print(f'Naive Bayes: {media_nb * 100:.2f}%')
-
         print(
             f'\nO {melhor_knn} foi mais eficiente porque apresentou '
             f'maior acurácia média durante a validação cruzada de 5 folds. '
