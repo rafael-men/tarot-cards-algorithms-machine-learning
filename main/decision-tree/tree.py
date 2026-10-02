@@ -13,7 +13,7 @@ plot_tree(
     fontsize=9
 )
 plt.title(
-    'Árvore de Decisão - Classificação das Cartas de Tarot'
+    'Árvore de Decisão - Classificação das Cartas'
 )
 plt.tight_layout()
 plt.show()

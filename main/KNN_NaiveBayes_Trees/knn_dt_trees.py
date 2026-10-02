@@ -1,12 +1,14 @@
 import pandas as pd
-import numpy as np
+
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.naive_bayes import BernoulliNB
+from sklearn.preprocessing import Binarizer, OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline as SKPipeline
 
 
 dataset = '../dataset/Dataset-Sheet.xlsx'
@@ -21,10 +23,7 @@ def classes(row):
         return 'major'
     return row['suit']
 
-df['label'] = df.apply(
-    classes,
-    axis=1
-)
+df['label'] = df.apply(classes,axis=1)
 
 # prepara features
 
@@ -65,6 +64,21 @@ preprocessador = ColumnTransformer(
     ]
 )
 
+preprocessador_nb = ColumnTransformer(
+    transformers = [
+          (
+            'cat',
+            OneHotEncoder(handle_unknown='ignore'),
+            categorias
+        ),
+        (
+            'num',
+            SKPipeline([('scaler', StandardScaler()), ('bin', Binarizer(threshold=0.0))]),
+            numericas
+        )
+    ]
+)
+
 # treinamento estratificado
 
 X_train, X_test, y_train, y_test = train_test_split(
@@ -80,6 +94,28 @@ cv = StratifiedKFold(
     shuffle=True,
     random_state=42
 )
+
+# Naive Bayes
+
+bnb = Pipeline (
+    steps = [
+        ('preprocessador', preprocessador_nb),
+        ('modelo', BernoulliNB(alpha=1.0)) 
+    ]
+)
+
+resultados_nb = cross_val_score(
+    bnb,
+    features,
+    y,
+    cv=cv,
+    scoring='accuracy'
+)
+
+print("Acurácia do BernoulliNB: %.4f ± %.4f"% (resultados_nb.mean(), resultados_nb.std()))
+
+bnb.fit(X_train, y_train)
+y_pred_bnb = bnb.predict(X_test)
 
 # árvore de decisão
 
@@ -115,6 +151,7 @@ print(
         resultados_arvore.std()
     )
 )
+
 # KNN com k = 5
 
 knn = Pipeline(
@@ -158,6 +195,11 @@ y_pred_dt = classificador.predict(
     X_test
 )
 
+print("\nResultados do Naive Bayes:")
+print(classification_report(y_test,y_pred_bnb))
+classes_nb = bnb.named_steps['modelo'].classes_
+print("Matriz de confusão:\n", confusion_matrix(y_test, y_pred_bnb, labels=classes_nb))
+
 print(
     "\nResultados da árvore de decisão:"
 )
@@ -200,19 +242,23 @@ print(classification_report(y_test,y_pred_knn))
 classes_knn = (knn.named_steps['modelo'].classes_)
 print("Matriz de confusão:\n",confusion_matrix(y_test,y_pred_knn, labels=classes_knn))
 
-acc_dt = (
-    y_pred_dt == y_test
-).mean()
 
-acc_knn = (
-    y_pred_knn == y_test
-).mean()
+
+
+acc_bnb = (y_pred_bnb == y_test).mean()
+acc_dt = (y_pred_dt == y_test).mean()
+acc_knn = ( y_pred_knn == y_test).mean()
 
 f1_dt = f1_score(y_test,y_pred_dt,average='macro')
 f1_knn = f1_score(y_test,y_pred_knn,average='macro')
+f1_bnb = f1_score(y_test, y_pred_bnb, average='macro')
 
+
+
+print("\nAcurácia - BernoulliNB: %.4f | Macro F1: %.4f" % (acc_bnb, f1_bnb))
 print("\nAcurácia - Árvore de Decisão: %.4f | KNN k=5: %.4f"% (acc_dt,acc_knn))
 print("Teste macro F1 - Árvore de Decisão: %.4f | KNN k=5: %.4f"% (f1_dt,f1_knn))
 print("\nValidação cruzada 5-Fold:")
+print("BernoulliNB: %.2f%% ± %.2f%%" % (resultados_nb.mean() * 100, resultados_nb.std() * 100))
 print("Árvore de Decisão: %.2f%% ± %.2f%%"% (resultados_arvore.mean() * 100,resultados_arvore.std() * 100))
 print("KNN k=5: %.2f%% ± %.2f%%"% (resultados_knn.mean() * 100,resultados_knn.std() * 100))
